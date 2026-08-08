@@ -2,7 +2,7 @@
 
 **Protecting Opportunities. Empowering Futures.**
 
-*Last updated: 4 August 2026*
+*Last updated: 8 August 2026*
 
 This notice is issued in terms of **Section 18 of the Protection of Personal
 Information Act 4 of 2013 (POPIA)** and meets the Chrome Web Store user data
@@ -33,8 +33,8 @@ Everything except Qhaphela AI works with no internet connection at all.
 
 | | |
 |---|---|
-| **Responsible party** | Sizwe Marole |
-| **Capacity** | Student researcher, Department of Information Technology, Central University of Technology, Free State |
+| **Responsible party** | 1. Sizwe Marole<br>2. Molemi Molokoane |
+| **Capacity** | 1. Student researcher, Department of Information Technology, Central University of Technology, Free State <br>2. Software Engineering Student, WeThinkCode_ |
 | **Contact** | Raise an issue at the project repository |
 | **Purpose of processing** | Detecting fraudulent job advertisements to protect job seekers from recruitment fraud and identity theft |
 
@@ -189,7 +189,7 @@ complaints.IR@justice.gov.za · https://inforegulator.org.za
 
 ## 8. Sharing
 
-Qhaphela **sells** your information to nobody, and shares it with nobody for
+Qhaphela **does not sell** your information to **nobody**, and shares it with nobody for
 advertising, analytics or profiling. There are no analytics, no advertising
 networks, and no data sales, now or planned.
 
