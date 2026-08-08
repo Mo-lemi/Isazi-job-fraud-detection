@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, apiStat
   };
 
   return (
-    <header className="bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+    <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
       {/* Top Row: Brand & Settings */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
