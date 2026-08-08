@@ -3,12 +3,12 @@ import { Header } from './components/Header';
 import { FraudScanner } from './components/FraudScanner';
 import { RedFlagAcademy } from './components/RedFlagAcademy';
 import { ExtensionSimulator } from './components/ExtensionSimulator';
+import { InstallGuide } from './components/InstallGuide';
 import { ApiDocs } from './components/ApiDocs';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'scanner' | 'academy' | 'simulator' | 'api'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'academy' | 'simulator' | 'api' | 'install'>('scanner');
   const [apiStatus, setApiStatus] = useState<'online' | 'offline' | 'checking'>('checking');
-
   useEffect(() => {
     fetch('/health')
       .then((res) => res.json())
@@ -33,6 +33,7 @@ export function App() {
           {activeTab === 'academy' && <RedFlagAcademy />}
           {activeTab === 'simulator' && <ExtensionSimulator />}
           {activeTab === 'api' && <ApiDocs />}
+          {activeTab === 'install' && <InstallGuide />}
         </main>
       </div>
 

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Globe, Settings, Sun, Moon, XCircle } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'scanner' | 'academy' | 'simulator' | 'api';
-  setActiveTab: (tab: 'scanner' | 'academy' | 'simulator' | 'api') => void;
+  activeTab: 'scanner' | 'academy' | 'simulator' | 'api' | 'install';
+  setActiveTab: (tab: 'scanner' | 'academy' | 'simulator' | 'api' | 'install') => void;
   apiStatus: 'online' | 'offline' | 'checking';
 }
 
@@ -100,7 +100,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, apiStat
         <nav className="flex items-center gap-8 overflow-x-auto no-scrollbar">
           {[
             { id: 'scanner', label: 'Overview' },
-            { id: 'academy', label: 'Red Flags' }
+            { id: 'academy', label: 'Red Flags' },
+            { id: 'install', label: 'How to Install' }
           ].map((tab) => (
             <button
               key={tab.id}
