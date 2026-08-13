@@ -10,6 +10,7 @@ import { ScamRecovery } from './components/ScamRecovery';
 import { GoldenRules } from './components/GoldenRules';
 import { SafeReplies } from './components/SafeReplies';
 import { QrScan } from './components/QrScan';
+import { PosterOcr } from './components/PosterOcr';
 import { RecentChecks } from './components/RecentChecks';
 import { CvBuilder } from './components/CvBuilder';
 import { AwarenessPoster } from './components/AwarenessPoster';
@@ -70,7 +71,7 @@ export function App() {
           {activeTab === 'api' && <ApiDocs />}
           {activeTab === 'install' && <InstallGuide />}
           {activeTab === 'verify' && <SafeReplies />}
-          {activeTab === 'qr' && <QrScan />}
+          {activeTab === 'qr' && <div className="space-y-6"><QrScan /><PosterOcr /></div>}
           {activeTab === 'cv' && <CvBuilder />}
           {activeTab === 'poster' && <AwarenessPoster />}
           {activeTab === 'recovery' && <ScamRecovery />}
