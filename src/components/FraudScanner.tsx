@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CvMatch } from './CvMatch';
 import { ApplicationChecklist } from './ApplicationChecklist';
 import { EmployerVerify } from './EmployerVerify';
+import { ThreatIntelSection } from './ThreatIntelSection';
 
 export const FraudScanner: React.FC = () => {
   const [inputText, setInputText] = useState<string>(SAMPLE_POSTINGS[0].text);
@@ -669,6 +670,9 @@ export const FraudScanner: React.FC = () => {
                 Not being able to verify these is not proof the job is fake, and no warnings is not proof it is safe.
               </p>
             </div>
+
+            {/* SA threat intelligence (brief section 19), real data from the score. */}
+            <ThreatIntelSection intel={result.threat_intel} />
 
             {/* Employer verification via passive recon (real /api/verify-employer). */}
             <EmployerVerify jobText={scoredText || ''} />

@@ -28,6 +28,20 @@ export interface CvGuidance {
   general: string[];
 }
 
+/** SA threat-intelligence findings. Curated matches and local reports are kept
+ *  separate so each can be labelled honestly; count is the documented total. */
+export interface ThreatIntelFinding {
+  indicator: string;
+  category: string;
+  severity: string;
+  note: string;
+}
+export interface ThreatIntel {
+  curated: ThreatIntelFinding[];
+  local_reports: ThreatIntelFinding[];
+  curated_pattern_count: number;
+}
+
 export interface ScoreResponse {
   score: number;
   tier: RiskTier;
@@ -47,6 +61,7 @@ export interface ScoreResponse {
   /* === ADD THE MISSING PROPERTIES BELOW === */
   positive_signals: RuleReason[];
   ai_confidence: number;
+  threat_intel: ThreatIntel;
 }
 
 export interface SamplePosting {
