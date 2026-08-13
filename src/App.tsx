@@ -8,6 +8,7 @@ import { ApiDocs } from './components/ApiDocs';
 import { ScamRecovery } from './components/ScamRecovery';
 import { GoldenRules } from './components/GoldenRules';
 import { SafeReplies } from './components/SafeReplies';
+import { QrScan } from './components/QrScan';
 
 // Every view needs a level-one heading. Screen reader users navigate by
 // heading structure, and this page had none at all, so there was no way to
@@ -20,10 +21,11 @@ const VIEW_TITLES: Record<string, string> = {
   api: 'API documentation',
   recovery: 'Scam recovery help',
   verify: 'Verify a recruiter safely',
+  qr: 'Scan a QR code',
 };
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify' | 'qr'>('scanner');
   const [apiStatus, setApiStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   useEffect(() => {
     fetch('/health')
@@ -61,6 +63,7 @@ export function App() {
           {activeTab === 'api' && <ApiDocs />}
           {activeTab === 'install' && <InstallGuide />}
           {activeTab === 'verify' && <SafeReplies />}
+          {activeTab === 'qr' && <QrScan />}
           {activeTab === 'recovery' && <ScamRecovery />}
         </main>
       </div>
