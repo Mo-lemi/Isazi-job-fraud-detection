@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Globe, Settings, Sun, Moon, XCircle, Type } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify' | 'qr';
-  setActiveTab: (tab: 'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify' | 'qr') => void;
+  activeTab: 'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify' | 'qr' | 'cv';
+  setActiveTab: (tab: 'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify' | 'qr' | 'cv') => void;
   apiStatus: 'online' | 'offline' | 'checking';
 }
 
@@ -165,6 +165,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             { id: 'academy', label: 'Red Flags' },
             { id: 'verify', label: 'Verify a Recruiter' },
             { id: 'qr', label: 'Scan a QR' },
+            { id: 'cv', label: 'Build a CV' },
             { id: 'install', label: 'How to Install' },
             { id: 'recovery', label: 'Been scammed?' }
           ].map((tab) => (
