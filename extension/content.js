@@ -894,6 +894,74 @@ function safetyTipHtml() {
   </div>`;
 }
 
+// ---- Full-panel sections from the product mockup ----------------------------
+// English labels for now (the section text below is real data or universal
+// safety guidance; the 11-language labels are a follow-up). These lay the panel
+// out as: why -> what to do -> threat intel -> before you apply -> golden rules.
+function whyResultHtml(result) {
+  const positives = (result.positive_signals || [])
+    .map((p) => `<li>${escapeHtml(p.reason)}</li>`).join("");
+  const risks = (result.rule_reasons || [])
+    .map((r) => `<li>${escapeHtml(r.reason)}</li>`).join("");
+  if (!positives && !risks) return "";
+  return cardHtml(
+    "Why this job received this result",
+    (positives ? `<ul class="qp-list ticks">${positives}</ul>` : "") +
+      (risks ? `<ul class="qp-list risks">${risks}</ul>` : "")
+  );
+}
+
+function whatToDoHtml(result) {
+  const detected = [
+    ...(result.rule_reasons || []).map((r) => r.reason),
+    ...(result.identity_theft_signals || []),
+  ].join(" ").toLowerCase();
+  const tailored = [];
+  if (/payment|registration fee|\bfee\b|deposit|upfront|gift card|crypto/.test(detected))
+    tailored.push("This posting asks for money up front. Never pay to get a job.");
+  if (/id number|banking|bank details|account number|id document/.test(detected))
+    tailored.push("It requests sensitive ID or banking details. Do not share these before a signed offer.");
+  if (/whatsapp|off-platform|off platform/.test(detected))
+    tailored.push("It moves you to a private chat. Keep communication on the official platform.");
+  const universal = [
+    "Verify the employer.",
+    "Apply through an official channel.",
+    "Never pay to apply.",
+    "Never send banking information.",
+  ];
+  return cardHtml(
+    "What should you do?",
+    (tailored.length ? `<ul class="qp-list warns">${tailored.map((a) => `<li>${escapeHtml(a)}</li>`).join("")}</ul>` : "") +
+      `<ul class="qp-list ticks">${universal.map((a) => `<li>${escapeHtml(a)}</li>`).join("")}</ul>`
+  );
+}
+
+function threatIntelPanelHtml(intel) {
+  if (!intel) return "";
+  const matched = intel.curated || [];
+  const local = intel.local_reports || [];
+  let inner = matched.length === 0
+    ? `<p>No known scam indicators matched this posting.</p>`
+    : `<ul class="qp-list warns">${matched.map((m) => `<li>${escapeHtml(m.category)}${m.note ? " - " + escapeHtml(m.note) : ""}</li>`).join("")}</ul>`;
+  inner += `<p class="qp-note">Matched against ${intel.curated_pattern_count} documented South African recruitment-fraud indicators.</p>`;
+  inner += `<p class="qp-card-label" style="margin-top:.6rem">Community reports</p>`;
+  inner += local.length
+    ? `<ul class="qp-list">${local.map((l) => `<li>${escapeHtml(l.note)}</li>`).join("")}</ul>`
+    : `<p>Nothing reported for this posting on this device.</p>`;
+  inner += `<p class="qp-note">"No known scam indicators matched" does not mean this job is legitimate.</p>`;
+  return cardHtml("🇿🇦 South African threat intelligence", inner);
+}
+
+function beforeYouApplyHtml() {
+  const items = ["Verified employer", "No payment requested", "Contact details checked", "Sensitive information protected"];
+  return cardHtml("📋 Before you apply", `<ul class="qp-list">${items.map((i) => `<li>☐ ${escapeHtml(i)}</li>`).join("")}</ul>`);
+}
+
+function goldenRulesHtml() {
+  const rules = ["Never pay to get a job.", "Protect your ID.", "Protect your banking details.", "Verify the employer.", "Don't let urgency pressure you."];
+  return cardHtml("🇿🇦 SA youth work safety - golden rules", `<ol class="qp-list" style="padding-left:1.2rem;list-style:decimal">${rules.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ol>`);
+}
+
 function trustedChannelsHtml() {
   const items = TRUSTED_JOB_LINKS.map(
     (l) => `<li><a class="qp-job-open" href="${safeUrl(l.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label)}</a></li>`
@@ -1157,31 +1225,36 @@ function renderPanelResult(result) {
      </div>`
   );
 
+  // Technical red-flag grid and contact checks stay behind "Quick detail";
+  // "Why this job received this result" (below) now shows the reasons/positives
+  // prominently, so factorsHtml is not repeated here.
   const detailsHtml =
     redFlagGridHtml(result.red_flags) +
-    factorsHtml(result.rule_reasons, result.positive_signals) +
     contactChecksHtml(result.contact_checks);
 
   const body = ensurePanel().querySelector("#qp-body");
+  // Panel laid out to match the product mockup: risk score -> why this result
+  // -> what should you do -> identity theft -> SA threat intelligence ->
+  // [View full report / Quick detail] -> report -> CV match -> safe job matches
+  // -> before you apply -> golden rules.
   body.innerHTML =
     scoreCard +
+    whyResultHtml(result) +
+    whatToDoHtml(result) +
     idTheftHtml(result.identity_theft_signals) +
+    threatIntelPanelHtml(result.threat_intel) +
     cardHtml(
       "",
       `<button class="qp-btn primary" id="qp-open-analysis" type="button">${escapeHtml(t("viewAnalysis"))} →</button>
        <button class="qp-btn ghost" id="qp-more" type="button" style="margin-top:.45rem">${escapeHtml(t("quickDetail"))}</button>`
     ) +
-    // Keep the initial panel short and glanceable (brief sections 2, 3, 7). The
-    // longer supplementary content -- red-flag detail, CV match, CV tips, and the
-    // safe-job / verified-channels list -- lives inside the "Quick detail"
-    // disclosure (and the full report), not the default view. Everything stays
-    // reachable: the nodes are only display:none, so wireCvUpload and every
-    // query still resolve them. The default panel leads with the risk result,
-    // the key signals and one clear action, per the section 3 ideal; the detail
-    // is one tap away behind "View full report" and "Quick detail".
-    `<div id="qp-details" class="hidden">${detailsHtml + safeMatchesHtml(lastPageScored) + cvMatchHtml(lastCvMatch) + cvTipsHtml(result.cv_guidance)}</div>` +
+    `<div id="qp-details" class="hidden">${detailsHtml + cvTipsHtml(result.cv_guidance)}</div>` +
     reportHtml() +
+    cvMatchHtml(lastCvMatch) +
+    safeMatchesHtml(lastPageScored) +
+    beforeYouApplyHtml() +
     safetyTipHtml() +
+    goldenRulesHtml() +
     `<p class="qp-foot">${escapeHtml(t("slogan"))}<br>
        <button class="qp-privacy-link" id="qp-privacy" type="button">${escapeHtml(t("privacyTerms"))}</button></p>`;
 
