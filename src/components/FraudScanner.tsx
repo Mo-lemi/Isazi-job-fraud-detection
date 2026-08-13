@@ -5,6 +5,7 @@ import { FLAG_LABELS } from '../lib/labels';
 import { ShieldAlert, AlertTriangle, CheckCircle2, Sparkles, RefreshCw, Info, ExternalLink, HelpCircle, Share2, Copy, Printer, Volume2, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CvMatch } from './CvMatch';
+import { ApplicationChecklist } from './ApplicationChecklist';
 
 export const FraudScanner: React.FC = () => {
   const [inputText, setInputText] = useState<string>(SAMPLE_POSTINGS[0].text);
@@ -584,6 +585,9 @@ export const FraudScanner: React.FC = () => {
                 ))}
               </ul>
             </div>
+
+            {/* Interactive "before you apply" checklist (Prompt 2 section 33). */}
+            <ApplicationChecklist />
 
             {/* Shareable safety summary. Built only from the real result; lets
                 someone warn family or a WhatsApp group, which is how these
