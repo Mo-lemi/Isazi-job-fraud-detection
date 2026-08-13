@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ScoreResponse, SamplePosting } from '../types';
 import { SAMPLE_POSTINGS } from '../data/samples';
 import { FLAG_LABELS } from '../lib/labels';
-import { ShieldAlert, AlertTriangle, CheckCircle2, Sparkles, RefreshCw, Info, ExternalLink, HelpCircle, Share2, Copy, Printer } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle2, Sparkles, RefreshCw, Info, ExternalLink, HelpCircle, Share2, Copy, Printer, Volume2, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CvMatch } from './CvMatch';
 
@@ -17,6 +17,7 @@ export const FraudScanner: React.FC = () => {
   // page could show a score beside text it was never calculated from.
   const [scoredText, setScoredText] = useState<string | null>(null);
   const [summaryCopied, setSummaryCopied] = useState<boolean>(false);
+  const [speaking, setSpeaking] = useState<boolean>(false);
 
   const handleScan = async (textToScan: string) => {
     setIsScanning(true);
@@ -32,6 +33,16 @@ export const FraudScanner: React.FC = () => {
         const data: ScoreResponse = await resp.json();
         setResult(data);
         setScoredText(textToScan);
+        // Privacy-safe history: store ONLY the time, tier and score - never the
+        // posting text, which can contain personal information. Capped at 8.
+        try {
+          const rec = JSON.parse(localStorage.getItem('qhaphela-recent') || '[]');
+          rec.unshift({ t: Date.now(), tier: data.tier, score: data.score });
+          localStorage.setItem('qhaphela-recent', JSON.stringify(rec.slice(0, 8)));
+          window.dispatchEvent(new Event('qhaphela-recent-updated'));
+        } catch {
+          /* localStorage unavailable (private mode) - history is optional */
+        }
       } else {
         const data = await resp.json().catch(() => ({}));
         setScanError(data.error || `Model service returned ${resp.status}`);
@@ -156,6 +167,23 @@ export const FraudScanner: React.FC = () => {
       // Clipboard can be blocked (e.g. non-secure context); the WhatsApp link
       // below still works as an independent share path, so fail quietly.
     }
+  };
+
+  // Read the summary aloud for low-vision users or anyone who prefers listening
+  // (accessibility, section 71). Uses the browser's built-in speech synthesis;
+  // no audio leaves the device.
+  const toggleSpeak = () => {
+    if (!result || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(buildShareSummary(result).replace(/\n+/g, '. '));
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utter);
   };
 
   // Helper to render text with clickable highlighted phrase spans
@@ -584,6 +612,14 @@ export const FraudScanner: React.FC = () => {
                   {summaryCopied
                     ? <><CheckCircle2 className="w-4 h-4 text-[var(--qp-safe)]" aria-hidden="true" /><span>Copied</span></>
                     : <><Copy className="w-4 h-4" aria-hidden="true" /><span>Copy summary</span></>}
+                </button>
+                <button
+                  onClick={toggleSpeak}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qp-primary)]"
+                >
+                  {speaking
+                    ? <><Square className="w-4 h-4" aria-hidden="true" /><span>Stop</span></>
+                    : <><Volume2 className="w-4 h-4" aria-hidden="true" /><span>Read aloud</span></>}
                 </button>
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(buildShareSummary(result))}`}

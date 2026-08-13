@@ -9,6 +9,7 @@ import { ScamRecovery } from './components/ScamRecovery';
 import { GoldenRules } from './components/GoldenRules';
 import { SafeReplies } from './components/SafeReplies';
 import { QrScan } from './components/QrScan';
+import { RecentChecks } from './components/RecentChecks';
 
 // Every view needs a level-one heading. Screen reader users navigate by
 // heading structure, and this page had none at all, so there was no way to
@@ -57,7 +58,7 @@ export function App() {
 
         <main id="main-content" tabIndex={-1} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="sr-only">{VIEW_TITLES[activeTab]}</h1>
-          {activeTab === 'scanner' && <><FraudScanner /><GoldenRules /></>}
+          {activeTab === 'scanner' && <><RecentChecks /><FraudScanner /><GoldenRules /></>}
           {activeTab === 'academy' && <RedFlagAcademy />}
           {activeTab === 'simulator' && <ExtensionSimulator />}
           {activeTab === 'api' && <ApiDocs />}
