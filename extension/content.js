@@ -1454,10 +1454,12 @@ function looksLikeJobPage() {
   const body = (document.body?.innerText || "").toLowerCase().slice(0, 20000);
   if (body.length < 200) return false;
   const phrases = [
-    "apply now", "apply for this", "job description", "job title", "vacancy",
-    "responsibilities", "requirements", "qualifications", "salary", "remuneration",
-    "full-time", "part-time", "permanent position", "closing date", "recruiter",
-    "we are hiring", "join our team", "send your cv", "submit your cv",
+    "apply now", "apply for this", "job description", "full job description",
+    "job title", "vacancy", "responsibilities", "requirements", "qualifications",
+    "salary", "remuneration", "full-time", "part-time", "permanent position",
+    "closing date", "recruiter", "we are hiring", "join our team", "send your cv",
+    "submit your cv", "easily apply", "apply with", "employment type",
+    "job type", "key responsibilities",
   ];
   const hits = phrases.filter((p) => body.includes(p)).length;
   return hits >= 4;
@@ -2199,17 +2201,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
-// Run once the page has settled, if the panel is actively showing
+// Once the page has fully loaded: rescore if the panel is up, or -- crucially --
+// open it if the posting only became detectable after document_idle. Many job
+// boards render the posting with JavaScript after the content script has already
+// run, so the single startup check below would otherwise miss them entirely.
 window.addEventListener("load", () => {
   if (panelActive) setTimeout(sendForScoring, 1200);
+  else if (looksLikeJobPage()) activatePanel();
 });
 
-// Single Page Application swaps (Facebook/LinkedIn/Indeed re-render without navigation).
-// Now guarded by whether the user actually opted-in to show the panel yet.
+// Content changes (SPA re-renders, lazy-loaded postings). This must also handle
+// the case where the panel is NOT yet active: a job posting that loads its
+// content late, without a URL change, is only caught here. Previously this
+// observer returned early when the panel was inactive, so those pages never
+// showed the panel at all -- the "extension doesn't appear on some sites" bug.
 const contentObserver = new MutationObserver(() => {
-  if (!panelActive) return;
   clearTimeout(window.__qhaphelaDebounce);
-  window.__qhaphelaDebounce = setTimeout(sendForScoring, 1500);
+  window.__qhaphelaDebounce = setTimeout(() => {
+    if (panelActive) {
+      sendForScoring();
+    } else if (looksLikeJobPage()) {
+      activatePanel();
+    }
+  }, 1200);
 });
 contentObserver.observe(document.body, { childList: true, subtree: true });
 
