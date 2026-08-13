@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Copy, CheckCircle2, HelpCircle } from 'lucide-react';
+import { MessageSquare, Copy, CheckCircle2, HelpCircle, MapPin, ExternalLink } from 'lucide-react';
 
 /**
  * Safe verification replies and questions (Prompt 3, sections 33-34 and 83-88).
@@ -58,6 +58,7 @@ const TEMPLATES: Template[] = [
 
 export const SafeReplies: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [place, setPlace] = useState('');
 
   const copy = async (id: string, text: string) => {
     try {
@@ -81,6 +82,43 @@ export const SafeReplies: React.FC = () => {
           A real employer can easily confirm who they are. These polite messages ask for that without
           accusing anyone. Copy one, adjust it if you like, and send it before sharing your ID,
           banking details or any payment.
+        </p>
+      </div>
+
+      {/* Check the job's location on a map (free, no API key). */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <MapPin className="w-4 h-4 text-[var(--qp-primary)]" aria-hidden="true" />
+          <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Check the job&apos;s location</h3>
+        </div>
+        <p className="text-xs text-slate-400 mb-3">
+          Type the company name or the address from the posting to look it up on a map before an interview.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            value={place}
+            onChange={(e) => setPlace(e.target.value)}
+            placeholder="Company name or address"
+            className="flex-1 min-w-[200px] bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-[var(--qp-primary)] outline-none"
+          />
+          <a
+            href={place.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}` : undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-disabled={!place.trim()}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              place.trim()
+                ? 'bg-[var(--qp-primary)] text-[var(--qp-primary-ink)] hover:brightness-110'
+                : 'bg-slate-800 text-slate-500 pointer-events-none'
+            }`}
+          >
+            <ExternalLink className="w-4 h-4" aria-hidden="true" />
+            <span>Open in Google Maps</span>
+          </a>
+        </div>
+        <p className="text-xs text-slate-500 italic mt-3">
+          Finding a place on a map does not prove the job is real - scammers use real addresses too. Use
+          it only to check the location exists and matches what you were told.
         </p>
       </div>
 
