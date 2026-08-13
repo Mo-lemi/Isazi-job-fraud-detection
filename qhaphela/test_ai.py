@@ -33,7 +33,16 @@ def client():
 
 # ---- The key must never reach the user -------------------------------------
 
-@pytest.mark.skip(reason="Windows Application Control blocking sklearn DLL locally")
+# Skipped on Windows only. Application Control on one dev machine blocks the
+# sklearn DLL this test loads through the app fixture, which is a local
+# environment problem rather than a problem with the code under test. An
+# unconditional skip would have retired the guarantee everywhere, including on
+# Linux and in CI, which is the opposite of what we want from the single most
+# important test in the file: it needs to keep running wherever it can.
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Windows Application Control blocks the sklearn DLL loaded via the app fixture",
+)
 def test_key_is_never_returned_by_any_ai_route(client, monkeypatch):
     """
     The single most important test in this file.

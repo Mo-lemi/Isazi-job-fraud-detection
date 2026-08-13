@@ -33,7 +33,7 @@ export const RedFlagAcademy: React.FC = () => {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-amber-400" />
-              <h2 className="text-xl font-bold font-mono tracking-wide text-amber-300">
+              <h2 className="text-xl font-bold font-mono tracking-wide text-[var(--qp-warn)]">
                 Red Flag Academy
               </h2>
             </div>
@@ -49,7 +49,7 @@ export const RedFlagAcademy: React.FC = () => {
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value as SupportedLanguage)}
-              className="bg-slate-950 text-amber-300 text-xs font-medium py-1 px-2.5 rounded border border-slate-800 outline-none cursor-pointer"
+              className="bg-slate-950 text-[var(--qp-warn)] text-xs font-medium py-1 px-2.5 rounded border border-slate-800 outline-none cursor-pointer"
             >
               <option value="en">English</option>
               <option value="zu">isiZulu</option>
@@ -72,13 +72,13 @@ export const RedFlagAcademy: React.FC = () => {
             >
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
-                  <span className="font-mono text-xs text-amber-400 font-semibold uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  <span className="font-mono text-xs text-[var(--qp-warn)] font-semibold uppercase tracking-wider bg-[var(--qp-warn-soft)] px-2 py-0.5 rounded border border-[var(--qp-warn)]">
                     Red Flag Pattern #{lesson.id}
                   </span>
                   <span className="text-[11px] font-mono text-slate-500">{langNames[lang]}</span>
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-100 group-hover:text-amber-300 transition-colors">
+                <h3 className="text-lg font-bold text-slate-100 group-hover:text-[var(--qp-warn)] transition-colors">
                   {lesson.title}
                 </h3>
 
@@ -93,8 +93,8 @@ export const RedFlagAcademy: React.FC = () => {
                   onClick={() => handleShare(lesson.id, lesson.title, lessonContent)}
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isCopied
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      ? 'bg-[var(--qp-safe-soft)] text-[var(--qp-safe)] border border-[var(--qp-safe)]'
+                      : 'bg-[var(--qp-warn-soft)] hover:brightness-95 text-[var(--qp-warn)] border border-[var(--qp-warn)]'
                   }`}
                 >
                   {isCopied ? (

@@ -117,6 +117,76 @@ async function startServer() {
   app.post('/score', scoreHandler);
   app.post('/api/score', scoreHandler);
 
+  // CV match endpoint -- proxies to the same FastAPI service (qhaphela/app.py
+  // /match), which compares a CV against a posting's stated requirements and
+  // returns a real matched/missing breakdown. No CV text is stored; it is
+  // forwarded once and the result returned.
+  const matchHandler = async (req: express.Request, res: express.Response) => {
+    const ip = req.ip || 'unknown';
+    if (rateLimited(ip)) {
+      return res.status(429).json({ error: 'Rate limit exceeded. Wait a moment and try again.' });
+    }
+    const { cv_text, job_text } = req.body || {};
+    if (typeof cv_text !== 'string' || typeof job_text !== 'string') {
+      return res.status(400).json({ error: 'Fields "cv_text" and "job_text" must be strings' });
+    }
+    if (cv_text.length > MAX_TEXT_CHARS || job_text.length > MAX_TEXT_CHARS) {
+      return res.status(413).json({ error: `Text too long (max ${MAX_TEXT_CHARS} characters)` });
+    }
+    try {
+      const mlRes = await fetch(`${ML_API_URL}/match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv_text, job_text }),
+      });
+      if (!mlRes.ok) {
+        return res.status(502).json({ error: `ML service returned ${mlRes.status}` });
+      }
+      res.json(await mlRes.json());
+    } catch {
+      res.status(502).json({
+        error: `ML service unreachable at ${ML_API_URL}. Start it with: uvicorn app:app --port 8000 (from qhaphela/)`,
+      });
+    }
+  };
+
+  app.post('/match', matchHandler);
+  app.post('/api/match', matchHandler);
+
+  // CV match from an uploaded file (PDF, .docx, .txt, .md) -- proxies the
+  // multipart request straight through to the FastAPI /match-file endpoint,
+  // which extracts the text server-side. The raw body (file + job_text field)
+  // is forwarded verbatim with its original Content-Type so the boundary is
+  // preserved; nothing is stored. express.raw keeps the 5 MB file intact.
+  const matchFileHandler = async (req: express.Request, res: express.Response) => {
+    const ip = req.ip || 'unknown';
+    if (rateLimited(ip)) {
+      return res.status(429).json({ error: 'Rate limit exceeded. Wait a moment and try again.' });
+    }
+    try {
+      const mlRes = await fetch(`${ML_API_URL}/match-file`, {
+        method: 'POST',
+        headers: { 'Content-Type': req.headers['content-type'] || 'multipart/form-data' },
+        // The project's fetch typing is narrow; a Buffer/Uint8Array body is
+        // accepted at runtime by undici. Cast to bypass the type mismatch.
+        body: req.body as any,
+      });
+      if (!mlRes.ok) {
+        const data = await mlRes.json().catch(() => ({}));
+        return res.status(mlRes.status).json({ error: data.detail || `Match service returned ${mlRes.status}` });
+      }
+      res.json(await mlRes.json());
+    } catch {
+      res.status(502).json({
+        error: `ML service unreachable at ${ML_API_URL}. Start it with: uvicorn app:app --port 8000 (from qhaphela/)`,
+      });
+    }
+  };
+
+  const rawMultipart = express.raw({ type: 'multipart/form-data', limit: '6mb' });
+  app.post('/match-file', rawMultipart, matchFileHandler);
+  app.post('/api/match-file', rawMultipart, matchFileHandler);
+
   // Development vs Production static serving
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

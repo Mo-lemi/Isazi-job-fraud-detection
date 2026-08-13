@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { ScoreResponse, SamplePosting } from '../types';
 import { SAMPLE_POSTINGS } from '../data/samples';
 import { FLAG_LABELS } from '../lib/labels';
-import { ShieldAlert, AlertTriangle, CheckCircle2, Sparkles, RefreshCw, Info, ExternalLink, HelpCircle } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle2, Sparkles, RefreshCw, Info, ExternalLink, HelpCircle, Share2, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { CvMatch } from './CvMatch';
 
 export const FraudScanner: React.FC = () => {
   const [inputText, setInputText] = useState<string>(SAMPLE_POSTINGS[0].text);
@@ -12,6 +13,10 @@ export const FraudScanner: React.FC = () => {
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [selectedHighlightIndex, setSelectedHighlightIndex] = useState<number | null>(null);
+  // The exact text the displayed verdict was produced from. Without this the
+  // page could show a score beside text it was never calculated from.
+  const [scoredText, setScoredText] = useState<string | null>(null);
+  const [summaryCopied, setSummaryCopied] = useState<boolean>(false);
 
   const handleScan = async (textToScan: string) => {
     setIsScanning(true);
@@ -26,6 +31,7 @@ export const FraudScanner: React.FC = () => {
       if (resp.ok) {
         const data: ScoreResponse = await resp.json();
         setResult(data);
+        setScoredText(textToScan);
       } else {
         const data = await resp.json().catch(() => ({}));
         setScanError(data.error || `Model service returned ${resp.status}`);
@@ -48,39 +54,109 @@ export const FraudScanner: React.FC = () => {
     handleScan(sample.text);
   };
 
+  // Tier colours use the shared, per-theme --qp tokens (risk/warn/safe) rather
+  // than fixed Tailwind reds/ambers/emeralds, so the RISK OVERVIEW keeps its
+  // contrast and brand hue in both light and dark. --qp-*-soft backgrounds
+  // pair with the matching solid foreground by design.
   const getTierColorClass = (tier: string) => {
     switch (tier) {
       case 'HIGH':
         return {
-          bg: 'bg-red-500/10',
-          border: 'border-red-500/40',
-          text: 'text-red-400',
-          badge: 'bg-red-500/20 text-red-300 border-red-500/40',
-          barFill: 'bg-red-500',
-          glow: 'shadow-red-500/10',
+          bg: 'bg-[var(--qp-risk-soft)]',
+          border: 'border-[var(--qp-risk)]',
+          text: 'text-[var(--qp-risk)]',
+          badge: 'bg-[var(--qp-risk-soft)] text-[var(--qp-risk)] border-[var(--qp-risk)]',
+          barFill: 'bg-[var(--qp-risk)]',
+          glow: '',
         };
       case 'MEDIUM':
         return {
-          bg: 'bg-amber-500/10',
-          border: 'border-amber-500/40',
-          text: 'text-amber-400',
-          badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-          barFill: 'bg-amber-500',
-          glow: 'shadow-amber-500/10',
+          bg: 'bg-[var(--qp-warn-soft)]',
+          border: 'border-[var(--qp-warn)]',
+          text: 'text-[var(--qp-warn)]',
+          badge: 'bg-[var(--qp-warn-soft)] text-[var(--qp-warn)] border-[var(--qp-warn)]',
+          barFill: 'bg-[var(--qp-warn)]',
+          glow: '',
         };
       default:
         return {
-          bg: 'bg-emerald-500/10',
-          border: 'border-emerald-500/40',
-          text: 'text-emerald-400',
-          badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-          barFill: 'bg-emerald-500',
-          glow: 'shadow-emerald-500/10',
+          bg: 'bg-[var(--qp-safe-soft)]',
+          border: 'border-[var(--qp-safe)]',
+          text: 'text-[var(--qp-safe)]',
+          badge: 'bg-[var(--qp-safe-soft)] text-[var(--qp-safe)] border-[var(--qp-safe)]',
+          barFill: 'bg-[var(--qp-safe)]',
+          glow: '',
         };
     }
   };
 
   const tierStyle = getTierColorClass(result?.tier ?? 'LOW');
+
+  // "What should you do" actions. The tailored lines are only produced when
+  // the matching flag was ACTUALLY detected in this posting (derived from the
+  // real rule_reasons / identity_theft_signals / contact warnings), so nothing
+  // here is invented. The universal rules below them are safety hygiene that is
+  // always sound advice and is never phrased as a claim about this specific job.
+  const getTailoredActions = (r: ScoreResponse): string[] => {
+    const detected = [
+      ...r.rule_reasons.map((x) => x.reason),
+      ...r.identity_theft_signals,
+      ...r.contact_checks.warning,
+    ]
+      .join(' ')
+      .toLowerCase();
+    const actions: string[] = [];
+    if (/(payment|registration fee|\bfee\b|deposit|upfront|pay to)/.test(detected))
+      actions.push('This posting asks for money up front. Never pay any amount to get a job.');
+    if (/(id number|id document|identity document|banking|bank details|account number)/.test(detected))
+      actions.push('It requests sensitive ID or banking details. Do not share these before a signed, verified offer.');
+    if (/(whatsapp|off-platform|off platform|telegram|personal email)/.test(detected))
+      actions.push('It moves you to a private chat. Keep communication on the official platform where you can.');
+    if (/(salary|market rate|above market|too good)/.test(detected))
+      actions.push('The pay looks unusually high for the role. Check the real market rate before proceeding.');
+    return actions;
+  };
+
+  const UNIVERSAL_ACTIONS = [
+    'Verify the employer through its official website or an independent search.',
+    'Apply through an official channel, not a personal WhatsApp or email address.',
+    'Never pay a fee to get a job.',
+    'Never send your ID, banking details or passwords before a signed offer.',
+  ];
+
+  // A concise, shareable safety summary built only from the real result. The
+  // "main concern" is the highest-weighted actual rule reason (or an honest
+  // "no major red flags" line for a clean posting) -- never invented. Sending
+  // this to family/WhatsApp is a core protective use in the SA context, where
+  // scams themselves spread over WhatsApp.
+  const buildShareSummary = (r: ScoreResponse): string => {
+    const tierWord = r.tier === 'HIGH' ? 'HIGH RISK' : r.tier === 'MEDIUM' ? 'MEDIUM RISK' : 'LOW RISK';
+    const topConcern = r.rule_reasons.length > 0
+      ? r.rule_reasons.slice().sort((a, b) => b.points - a.points)[0].reason
+      : 'No major red flags were detected.';
+    const action = getTailoredActions(r)[0]
+      || 'Verify the employer through its official website before applying.';
+    return [
+      'QHAPHELA JOB SAFETY CHECK',
+      `Result: ${tierWord} (${r.score}/100)`,
+      `Main concern: ${topConcern}`,
+      `What to do: ${action}`,
+      '',
+      'This is an informational safety check, not proof a job is legitimate. Always verify independently. Checked with Qhaphela.',
+    ].join('\n');
+  };
+
+  const copySummary = async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(buildShareSummary(result));
+      setSummaryCopied(true);
+      setTimeout(() => setSummaryCopied(false), 2500);
+    } catch {
+      // Clipboard can be blocked (e.g. non-secure context); the WhatsApp link
+      // below still works as an independent share path, so fail quietly.
+    }
+  };
 
   // Helper to render text with clickable highlighted phrase spans
   const renderAnnotatedText = (result: ScoreResponse) => {
@@ -146,10 +222,15 @@ export const FraudScanner: React.FC = () => {
           onClick={() => setSelectedHighlightIndex(isSelected ? null : span.hlIndex)}
           aria-pressed={isSelected}
           aria-label={`Flagged phrase: ${span.phrase}. Reason: ${span.reason}`}
-          className={`relative group inline-block px-1 py-0.5 rounded cursor-pointer transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+          // Colours come from the shared --qp-risk tokens, which are defined
+          // per-theme, so the flagged phrase stays legible in BOTH light and
+          // dark. The old hardcoded text-red-200 went invisible on the pale
+          // light background; text on --qp-surface always contrasts its
+          // --qp-risk background because they are a measured pair.
+          className={`relative group inline-block px-1 py-0.5 rounded cursor-pointer transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qp-risk)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qp-page)] ${
             isSelected
-              ? 'bg-red-500 text-white font-medium ring-2 ring-red-400 ring-offset-2 ring-offset-slate-900 shadow-md'
-              : 'bg-red-500/20 text-red-200 border-b-2 border-red-500 hover:bg-red-500/40 hover:text-white'
+              ? 'bg-[var(--qp-risk)] text-[var(--qp-surface)] font-medium ring-2 ring-[var(--qp-risk)] shadow-md'
+              : 'bg-[var(--qp-risk-soft)] text-[var(--qp-risk)] border-b-2 border-[var(--qp-risk)] hover:bg-[var(--qp-risk)] hover:text-[var(--qp-surface)]'
           }`}
         >
           <mark className="bg-transparent text-inherit">{span.phrase}</mark>
@@ -226,6 +307,45 @@ export const FraudScanner: React.FC = () => {
       </div>
 
       {/* Main Scanner Grid */}
+      {/* A failed scan used to leave the previous verdict on screen with no
+          indication at all: paste a new posting, have the service hiccup, and
+          you were shown the earlier posting's score as though it applied.
+          The error is now surfaced whether or not a result is already up. */}
+      {scanError && result ? (
+        <div
+          role="alert"
+          className="mb-4 bg-[var(--qp-risk-soft)] border border-[var(--qp-risk)] rounded-xl p-4 flex items-start gap-3"
+        >
+          <AlertTriangle className="w-5 h-5 text-[var(--qp-risk)] shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="flex-1">
+            <p className="text-sm text-[var(--qp-risk)] font-medium">This scan did not complete.</p>
+            <p className="text-xs text-[var(--qp-ink-body)] mt-1">
+              {scanError} The verdict below is from the text you scanned previously, not the text
+              in the box now.
+            </p>
+            <button
+              onClick={() => handleScan(inputText)}
+              className="mt-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Editing the box without rescanning leaves the verdict describing the
+          old text. Saying so is cheap; letting someone assume otherwise is not. */}
+      {!scanError && result && scoredText !== null && scoredText !== inputText ? (
+        <div
+          role="status"
+          className="mb-4 bg-[var(--qp-warn-soft)] border border-[var(--qp-warn)] rounded-xl px-4 py-3 text-xs text-[var(--qp-warn)]"
+        >
+          You have edited the posting text since this verdict was calculated. Press
+          <span className="font-semibold"> Scan Posting </span>
+          to score what is in the box now.
+        </div>
+      ) : null}
+
       {result ? (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -269,7 +389,7 @@ export const FraudScanner: React.FC = () => {
                 onClick={() => handleScan(inputText)}
                 disabled={isScanning || !inputText.trim()}
                 aria-busy={isScanning}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-sm transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--qp-primary)] text-[var(--qp-primary-ink)] font-medium text-sm transition-all shadow-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qp-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qp-page)]"
               >
                 <RefreshCw aria-hidden="true" className={`w-4 h-4 ${isScanning ? 'animate-spin motion-reduce:animate-none' : ''}`} />
                 <span>{isScanning ? 'Scoring...' : 'Scan Posting'}</span>
@@ -306,12 +426,12 @@ export const FraudScanner: React.FC = () => {
                       onClick={() => setSelectedHighlightIndex(idx)}
                       className={`text-xs px-2.5 py-1 rounded-md border cursor-pointer transition-all flex items-center gap-1.5 ${
                         selectedHighlightIndex === idx
-                          ? 'bg-red-500/20 border-red-500 text-red-200 font-medium'
+                          ? 'bg-[var(--qp-risk-soft)] border-[var(--qp-risk)] text-[var(--qp-risk)] font-medium'
                           : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
                       }`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                      <span className="font-mono text-red-300">"{hl.phrase}"</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--qp-risk)]"></span>
+                      <span className="font-mono text-[var(--qp-risk)]">"{hl.phrase}"</span>
                       <span className="text-slate-400">({hl.reason})</span>
                     </div>
                   ))}
@@ -413,7 +533,97 @@ export const FraudScanner: React.FC = () => {
                  Qhaphela gives you an informed recommendation. It is not a final judgement - always verify independently.
               </p>
             </div>
-            
+
+            {/* What Should You Do: concrete next steps. Tailored warnings first
+                (only when the flag was really detected), then the universal
+                safety rules that apply to any job application. */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 block">
+                What should you do?
+              </span>
+              <ul className="space-y-2.5">
+                {getTailoredActions(result).map((action, i) => (
+                  <li key={`t-${i}`} className="flex items-start gap-2.5 text-sm text-slate-200">
+                    <AlertTriangle className="w-4 h-4 text-[var(--qp-risk)] shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>{action}</span>
+                  </li>
+                ))}
+                {UNIVERSAL_ACTIONS.map((action, i) => (
+                  <li key={`u-${i}`} className="flex items-start gap-2.5 text-sm text-slate-200">
+                    <CheckCircle2 className="w-4 h-4 text-[var(--qp-safe)] shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>{action}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Shareable safety summary. Built only from the real result; lets
+                someone warn family or a WhatsApp group, which is how these
+                scams spread in the first place. */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+              <div className="flex items-center gap-2 mb-2">
+                <Share2 className="w-4 h-4 text-[var(--qp-primary)]" aria-hidden="true" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Share this safety check</span>
+              </div>
+              <p className="text-xs text-slate-400 mb-4">
+                Send a short summary to someone you trust before you apply.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={copySummary}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qp-primary)]"
+                >
+                  {summaryCopied
+                    ? <><CheckCircle2 className="w-4 h-4 text-[var(--qp-safe)]" aria-hidden="true" /><span>Copied</span></>
+                    : <><Copy className="w-4 h-4" aria-hidden="true" /><span>Copy summary</span></>}
+                </button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(buildShareSummary(result))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[var(--qp-primary)] text-[var(--qp-primary-ink)] text-xs font-medium transition-all hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qp-primary)]"
+                >
+                  <ExternalLink className="w-4 h-4" aria-hidden="true" />
+                  <span>Share on WhatsApp</span>
+                </a>
+              </div>
+            </div>
+
+            {/* What Qhaphela could NOT verify. A text-only scan reads the words
+                of a posting; it cannot confirm who is really behind it. Saying
+                so plainly is the project's core principle: never let absence of
+                a warning read as proof the job is safe. These limits are true
+                for any pasted text, so the list is fixed here (the browser
+                extension, which can read a page's contact details, says more). */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+              <div className="flex items-center gap-2 mb-2">
+                <HelpCircle className="w-4 h-4 text-[var(--qp-warn)]" aria-hidden="true" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">What Qhaphela could not verify</span>
+              </div>
+              <p className="text-xs text-slate-400 mb-4">
+                This is a check of the posting's wording. It cannot confirm the following, so verify them yourself before you trust the offer:
+              </p>
+              <ul className="space-y-2">
+                {[
+                  'Whether the recruiter is who they claim to be.',
+                  "Whether this vacancy appears on the employer's official careers page.",
+                  "The company's registration or real physical location.",
+                  'Whether the contact details truly belong to the named employer.',
+                ].map((item, i) => (
+                  <li key={`nv-${i}`} className="flex items-start gap-2.5 text-sm text-slate-300">
+                    <span className="text-[var(--qp-warn)] mt-0.5 shrink-0" aria-hidden="true">?</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-slate-500 italic mt-4">
+                Not being able to verify these is not proof the job is fake, and no warnings is not proof it is safe.
+              </p>
+            </div>
+
+            {/* CV match against the posting just scored (real /api/match call). */}
+            <CvMatch jobText={scoredText || ''} />
+
           </div>
           
 
@@ -461,10 +671,10 @@ export const FraudScanner: React.FC = () => {
           {/* Identity-theft warning: separate from the fraud score because the
               harm (identity theft, SIM-swap fraud) is different in kind. */}
           {result.identity_theft_signals.length > 0 && (
-            <div className="bg-red-950/40 border border-red-800/60 rounded-xl p-5 space-y-2">
+            <div className="bg-[var(--qp-risk-soft)] border border-[var(--qp-risk)] rounded-xl p-5 space-y-2">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400" />
-                <h3 className="text-sm font-semibold text-red-300 font-mono uppercase tracking-wider">
+                <AlertTriangle className="w-4 h-4 text-[var(--qp-risk)]" />
+                <h3 className="text-sm font-semibold text-[var(--qp-risk)] font-mono uppercase tracking-wider">
                   Identity Theft Risk
                 </h3>
               </div>
@@ -512,8 +722,8 @@ export const FraudScanner: React.FC = () => {
         <div className="bg-slate-950 border border-slate-800 rounded-xl p-8 text-center" role="status" aria-live="polite">
           {scanError ? (
             <>
-              <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-2" aria-hidden="true" />
-              <p className="text-sm text-red-300 font-mono">{scanError}</p>
+              <AlertTriangle className="w-6 h-6 text-[var(--qp-risk)] mx-auto mb-2" aria-hidden="true" />
+              <p className="text-sm text-[var(--qp-risk)] font-mono">{scanError}</p>
               <button
                 onClick={() => handleScan(inputText)}
                 className="mt-3 px-4 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300 hover:text-slate-100"

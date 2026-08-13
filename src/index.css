@@ -14,23 +14,131 @@
   }
 }
 
-/* 
-  Magic Tailwind Color Inversion for Light Mode
-  This flips the hardcoded slate colors used in your React components 
-  so you don't have to rewrite them.
+/*
+  Light-mode palette.
+
+  The React components hardcode Tailwind slate-* utilities (bg-slate-900,
+  text-slate-100, ...). In Tailwind v4 those compile to var(--color-slate-*),
+  so remapping the slate scale at body scope flips the whole UI to light
+  without touching a single component.
+
+  Theme resolution (matches the extension's panel.css, so both surfaces
+  behave identically, per the product brief section 13):
+
+    - No class on <body>  -> follow the operating-system preference via
+      prefers-color-scheme. This updates live when the OS theme changes.
+    - body.light          -> force light, even on a dark OS.
+    - body.dark           -> force dark, even on a light OS. Needs no remap:
+      Tailwind's built-in slate scale is already the dark palette, and .dark
+      is excluded from the OS-light block below, so it simply stays dark.
+
+  The light values live in one custom-property group so they are declared
+  once and reused by both the OS-default rule and the manual .light rule.
 */
+:root {
+  --qp-slate-950: #ffffff;
+  --qp-slate-900: #f4f5f7;
+  --qp-slate-800: #e2e8f0;
+  --qp-slate-700: #cbd5e1;
+  --qp-slate-600: #94a3b8;
+  --qp-slate-500: #64748b;
+  --qp-slate-400: #475569;
+  --qp-slate-300: #334155;
+  --qp-slate-200: #1e293b;
+  --qp-slate-100: #0f172a;
+  --qp-slate-50: #020617;
+}
+
+/*
+  Qhaphela semantic colour tokens, ported verbatim from the extension's
+  panel.css so both surfaces speak one visual language (brief section 14).
+  Unlike raw Tailwind reds/greens, each token is defined per-theme, so a
+  foreground/background pair keeps its contrast in BOTH light and dark.
+
+  These dark values are the base; the light overrides live in the same two
+  selectors as the slate remap above, so theme resolution is identical.
+*/
+:root {
+  --qp-page: #080A0F;
+  --qp-surface: #14161F;
+  --qp-surface-2: #1B1E28;
+  --qp-ink: #F2F2F5;
+  --qp-ink-body: #D7D8DE;
+  --qp-ink-muted: #9DA0AC;
+  --qp-line: #262A36;
+  --qp-primary: #7FB3FF;
+  --qp-primary-ink: #081A2F;
+  --qp-primary-soft: #12203A;
+  --qp-safe: #4ADE80;
+  --qp-safe-soft: #0F2419;
+  --qp-risk: #FF7B6B;
+  --qp-risk-soft: #2A1512;
+  --qp-warn: #F4C74A;
+  --qp-warn-soft: #2A2110;
+}
+
+/* Manual light choice: forces light even on a dark OS. */
 body.light {
-  --color-slate-950: #ffffff;
-  --color-slate-900: #f4f5f7;
-  --color-slate-800: #e2e8f0;
-  --color-slate-700: #cbd5e1;
-  --color-slate-600: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-400: #475569;
-  --color-slate-300: #334155;
-  --color-slate-200: #1e293b;
-  --color-slate-100: #0f172a;
-  --color-slate-50: #020617;
+  --qp-page: #F4F6FA;
+  --qp-surface: #FFFFFF;
+  --qp-surface-2: #F7F9FC;
+  --qp-ink: #081A2F;
+  --qp-ink-body: #2E3A4B;
+  --qp-ink-muted: #5B6472;
+  --qp-line: #E2E8F0;
+  --qp-primary: #083E7D;
+  --qp-primary-ink: #FFFFFF;
+  --qp-primary-soft: #EAF1FB;
+  --qp-safe: #0B6B3A;
+  --qp-safe-soft: #E8F5EE;
+  --qp-risk: #C0281C;
+  --qp-risk-soft: #FDECEA;
+  --qp-warn: #8A6200;
+  --qp-warn-soft: #FCF4E3;
+  --color-slate-950: var(--qp-slate-950);
+  --color-slate-900: var(--qp-slate-900);
+  --color-slate-800: var(--qp-slate-800);
+  --color-slate-700: var(--qp-slate-700);
+  --color-slate-600: var(--qp-slate-600);
+  --color-slate-500: var(--qp-slate-500);
+  --color-slate-400: var(--qp-slate-400);
+  --color-slate-300: var(--qp-slate-300);
+  --color-slate-200: var(--qp-slate-200);
+  --color-slate-100: var(--qp-slate-100);
+  --color-slate-50: var(--qp-slate-50);
+}
+
+/* Follow the OS when the user has not made an explicit choice. */
+@media (prefers-color-scheme: light) {
+  body:not(.light):not(.dark) {
+    --qp-page: #F4F6FA;
+    --qp-surface: #FFFFFF;
+    --qp-surface-2: #F7F9FC;
+    --qp-ink: #081A2F;
+    --qp-ink-body: #2E3A4B;
+    --qp-ink-muted: #5B6472;
+    --qp-line: #E2E8F0;
+    --qp-primary: #083E7D;
+    --qp-primary-ink: #FFFFFF;
+    --qp-primary-soft: #EAF1FB;
+    --qp-safe: #0B6B3A;
+    --qp-safe-soft: #E8F5EE;
+    --qp-risk: #C0281C;
+    --qp-risk-soft: #FDECEA;
+    --qp-warn: #8A6200;
+    --qp-warn-soft: #FCF4E3;
+    --color-slate-950: var(--qp-slate-950);
+    --color-slate-900: var(--qp-slate-900);
+    --color-slate-800: var(--qp-slate-800);
+    --color-slate-700: var(--qp-slate-700);
+    --color-slate-600: var(--qp-slate-600);
+    --color-slate-500: var(--qp-slate-500);
+    --color-slate-400: var(--qp-slate-400);
+    --color-slate-300: var(--qp-slate-300);
+    --color-slate-200: var(--qp-slate-200);
+    --color-slate-100: var(--qp-slate-100);
+    --color-slate-50: var(--qp-slate-50);
+  }
 }
 
 /* Faint Shield Watermark */
@@ -47,6 +155,12 @@ body::after {
   opacity: 0.06;
   pointer-events: none;
   z-index: 1;
+}
+
+/* Accessibility: larger text option (toggled from the settings menu). Scales
+   the root font size, which every rem-based Tailwind size follows. */
+html.qp-large-text {
+  font-size: 18px;
 }
 
 /* Custom scrollbar styling */

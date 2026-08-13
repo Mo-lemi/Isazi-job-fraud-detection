@@ -959,7 +959,14 @@ function redFlagGridHtml(flags) {
   return cardHtml(t("redFlags"), build(detected, "risks") + build(clean, "ticks"));
 }
 
-function factorsHtml(ruleReasons, positives, total) {
+// The header used to read "Why this score · <rule total>/100", which stated
+// something untrue: rule_points_total is its own capped 0-100 scale, not the
+// safety score above it. A posting could show 75/100 at the top and
+// "Why this score · 100/100" a few centimetres below, which is exactly the
+// class of confident-but-wrong readout this tool exists to argue against.
+// The per-signal points are listed underneath anyway, so the denominator was
+// carrying no information the user could not already see.
+function factorsHtml(ruleReasons, positives) {
   const up = (ruleReasons || [])
     .map((r) => `<div class="qp-factor"><span class="r">${escapeHtml(r.reason)}</span><span class="p up">+${r.points}</span></div>`)
     .join("");
@@ -967,7 +974,7 @@ function factorsHtml(ruleReasons, positives, total) {
     .map((p) => `<div class="qp-factor"><span class="r">${escapeHtml(p.reason)}</span><span class="p down">${p.points}</span></div>`)
     .join("");
   if (!up && !down) return "";
-  const label = ruleReasons && ruleReasons.length ? `${t("whyLabel")} · ${total}/100` : t("reducesRisk");
+  const label = ruleReasons && ruleReasons.length ? t("whyLabel") : t("reducesRisk");
   return cardHtml(label, up + down);
 }
 
@@ -1152,7 +1159,7 @@ function renderPanelResult(result) {
 
   const detailsHtml =
     redFlagGridHtml(result.red_flags) +
-    factorsHtml(result.rule_reasons, result.positive_signals, result.rule_points_total) +
+    factorsHtml(result.rule_reasons, result.positive_signals) +
     contactChecksHtml(result.contact_checks);
 
   const body = ensurePanel().querySelector("#qp-body");
@@ -1164,11 +1171,15 @@ function renderPanelResult(result) {
       `<button class="qp-btn primary" id="qp-open-analysis" type="button">${escapeHtml(t("viewAnalysis"))} →</button>
        <button class="qp-btn ghost" id="qp-more" type="button" style="margin-top:.45rem">${escapeHtml(t("quickDetail"))}</button>`
     ) +
-    `<div id="qp-details" class="hidden">${detailsHtml}</div>` +
+    // Keep the initial panel glanceable (brief section 7): the long, tailored
+    // CV-tips list moves inside the existing "Quick detail" disclosure instead
+    // of always being on screen. It stays fully reachable (the node is only
+    // display:none, so wireCvUpload and every query still resolve it) and
+    // nothing is lost -- the panel just leads with the safety essentials.
+    `<div id="qp-details" class="hidden">${detailsHtml + cvTipsHtml(result.cv_guidance)}</div>` +
     reportHtml() +
     safeMatchesHtml(lastPageScored) +
     cvMatchHtml(lastCvMatch) +
-    cvTipsHtml(result.cv_guidance) +
     safetyTipHtml() +
     `<p class="qp-foot">${escapeHtml(t("slogan"))}<br>
        <button class="qp-privacy-link" id="qp-privacy" type="button">${escapeHtml(t("privacyTerms"))}</button></p>`;
@@ -2054,44 +2065,18 @@ function sendForScoring() {
 
 let panelActive = false;
 
-function injectActivationTrigger() {
-  if (document.getElementById('qhaphela-activation-trigger')) return;
-
-  const triggerBtn = document.createElement('button');
-  triggerBtn.id = 'qhaphela-activation-trigger';
-  triggerBtn.innerText = 'Analyze Job Posting';
-  
-  // Clean styling aligned to the rest of the application
-  triggerBtn.style.cssText = `
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 2147483647;
-    padding: 12px 20px;
-    background-color: #083E7D;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(8, 26, 47, 0.15);
-    font-family: 'Atkinson Hyperlegible', -apple-system, sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    transition: transform 0.2s ease, background-color 0.2s ease;
-  `;
-
-  triggerBtn.addEventListener('mouseenter', () => triggerBtn.style.transform = 'translateY(-2px)');
-  triggerBtn.addEventListener('mouseleave', () => triggerBtn.style.transform = 'translateY(0)');
-
-  triggerBtn.addEventListener('click', () => {
-    triggerBtn.style.display = 'none';
-    panelActive = true;
-    ensurePanel();
-    renderPanelConnecting();
-    sendForScoring();
-  });
-
-  document.body.appendChild(triggerBtn);
+// The panel now opens automatically the moment a supported job posting is
+// detected: no "Analyze Job Posting" button, no manual click. On a job page
+// Qhaphela detects, analyses and appears on its own; on anything that is not
+// a job it stays completely invisible (see closeExtensionUI and the
+// navigation observer below). This replaces the earlier opt-in trigger
+// button so the flow is: open job -> detect -> analyse -> appear.
+function activatePanel() {
+  if (panelActive) return;
+  panelActive = true;
+  ensurePanel();
+  renderPanelConnecting();
+  sendForScoring();
 }
 
 function closeExtensionUI() {
@@ -2109,16 +2094,15 @@ const navigationObserver = new MutationObserver(() => {
     lastKnownUrl = location.href;
 
     if (!looksLikeJobPage()) {
+      // Left the job posting (or moved to a non-job page): disappear
+      // completely so the page looks untouched.
       closeExtensionUI();
-      const trigger = document.getElementById('qhaphela-activation-trigger');
-      if (trigger) trigger.remove();
+    } else if (!panelActive) {
+      // Landed on a new supported job: open and analyse automatically.
+      activatePanel();
     } else {
-      if (!panelActive) {
-        injectActivationTrigger();
-      } else {
-        // Panel is already open; automatically rescore the new job posting
-        sendForScoring();
-      }
+      // Panel already open; rescore the newly loaded posting.
+      sendForScoring();
     }
   }
 });
@@ -2155,7 +2139,9 @@ const contentObserver = new MutationObserver(() => {
 });
 contentObserver.observe(document.body, { childList: true, subtree: true });
 
-// Startup check
+// Startup: if this first page is already a job posting, open and analyse
+// automatically. Otherwise stay dormant until the navigation observer sees
+// the user land on one.
 if (looksLikeJobPage()) {
-  injectActivationTrigger();
+  activatePanel();
 }

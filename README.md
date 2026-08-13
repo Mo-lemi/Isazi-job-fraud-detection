@@ -11,6 +11,31 @@ The scoring engine itself is a real trained model, not a hardcoded rules engine:
 
 ---
 
+## 👤 For job seekers (start here)
+
+Qhaphela helps you check a job **before** you apply, in two ways:
+
+- **No install needed** - open the web app and paste a job posting, or a recruiter's
+  message forwarded over WhatsApp, SMS or email. You get a plain-language safety read:
+  a risk level, *why* it was flagged, and *what to do next*.
+- **Best experience** - install the free Chrome extension. It runs quietly and only
+  appears when you open a real job posting, showing a safety panel right on the page.
+  On ordinary pages it stays completely invisible.
+
+Inside the web app you will also find:
+
+- **Red Flags** - short, shareable lessons on how job scams actually work.
+- **Verify a Recruiter** - polite, copy-ready messages to confirm an employer before you
+  share anything.
+- **Been scammed?** - calm, step-by-step help if something has already gone wrong,
+  pointing you to real South African channels (your bank, SAPS, SAFPS).
+
+Three rules that keep you safe: **never pay to get a job**, **never send your ID or
+banking details before a signed offer**, and **verify the employer yourself**. Qhaphela
+gives you an informed opinion, never a guarantee - a low score is not proof a job is safe.
+
+---
+
 ## ⚡ How to Run It (two processes, in order)
 
 ### Step 1: Start the ML model service
