@@ -157,6 +157,34 @@ export const RedFlagAcademy: React.FC = () => {
         </div>
       </div>
 
+      {/* Sector-specific scam types (Prompt 3 sections 55-65). Real SA
+          recruitment-fraud patterns, described plainly. English for now;
+          translations are a follow-up. No invented statistics. */}
+      <div className="bg-slate-950 border border-slate-800 rounded-xl p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-[var(--qp-warn)]" />
+          <h3 className="text-base font-bold text-slate-200 font-mono uppercase tracking-wider">
+            Common recruitment scam types in South Africa
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          {[
+            { t: 'Learnership & internship "fees"', s: 'You are asked to pay to secure a learnership, internship or "training".', d: 'Genuine learnerships never charge you to join. Verify directly with the company or SETA, and never pay.' },
+            { t: 'Government job scams', s: 'Posts using a department or DPSA name ask for payment or your documents upfront.', d: 'Real government vacancies are advertised free through official channels. Apply only there; never pay a "processing" fee.' },
+            { t: 'Work-from-home / starter kit', s: 'You must buy equipment, software or a "starter pack" before you can begin.', d: 'A real employer provides the tools. Being asked to pay to start is a strong warning sign.' },
+            { t: 'Recruit-others / MLM', s: 'You earn mainly by signing up other people, or must buy a package to join.', d: 'Treat "join and recruit" income and joining fees as a warning sign, and verify what you are actually being hired to do.' },
+            { t: 'Commission-only with upfront costs', s: 'A "sales" role expects you to buy stock or pay for materials first.', d: 'Be very cautious about paying for stock before you have earned anything.' },
+            { t: 'Overseas / visa job scams', s: 'You are told to pay visa, agency, relocation or accommodation fees for a foreign job.', d: 'Never pay these to a recruiter. Confirm the offer through the official employer and the relevant embassy.' },
+          ].map((item) => (
+            <div key={item.t} className="p-4 bg-slate-900/60 rounded-lg border border-slate-800/80 space-y-1">
+              <p className="font-semibold text-slate-200 text-sm">{item.t}</p>
+              <p className="text-xs text-slate-400 leading-relaxed"><span className="text-[var(--qp-warn)]">What it looks like:</span> {item.s}</p>
+              <p className="text-xs text-slate-400 leading-relaxed"><span className="text-[var(--qp-safe)]">What to do:</span> {item.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 };
