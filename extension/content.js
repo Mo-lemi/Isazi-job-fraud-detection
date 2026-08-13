@@ -1171,15 +1171,16 @@ function renderPanelResult(result) {
       `<button class="qp-btn primary" id="qp-open-analysis" type="button">${escapeHtml(t("viewAnalysis"))} →</button>
        <button class="qp-btn ghost" id="qp-more" type="button" style="margin-top:.45rem">${escapeHtml(t("quickDetail"))}</button>`
     ) +
-    // Keep the initial panel glanceable (brief section 7): the long, tailored
-    // CV-tips list moves inside the existing "Quick detail" disclosure instead
-    // of always being on screen. It stays fully reachable (the node is only
-    // display:none, so wireCvUpload and every query still resolve it) and
-    // nothing is lost -- the panel just leads with the safety essentials.
-    `<div id="qp-details" class="hidden">${detailsHtml + cvTipsHtml(result.cv_guidance)}</div>` +
+    // Keep the initial panel short and glanceable (brief sections 2, 3, 7). The
+    // longer supplementary content -- red-flag detail, CV match, CV tips, and the
+    // safe-job / verified-channels list -- lives inside the "Quick detail"
+    // disclosure (and the full report), not the default view. Everything stays
+    // reachable: the nodes are only display:none, so wireCvUpload and every
+    // query still resolve them. The default panel leads with the risk result,
+    // the key signals and one clear action, per the section 3 ideal; the detail
+    // is one tap away behind "View full report" and "Quick detail".
+    `<div id="qp-details" class="hidden">${detailsHtml + safeMatchesHtml(lastPageScored) + cvMatchHtml(lastCvMatch) + cvTipsHtml(result.cv_guidance)}</div>` +
     reportHtml() +
-    safeMatchesHtml(lastPageScored) +
-    cvMatchHtml(lastCvMatch) +
     safetyTipHtml() +
     `<p class="qp-foot">${escapeHtml(t("slogan"))}<br>
        <button class="qp-privacy-link" id="qp-privacy" type="button">${escapeHtml(t("privacyTerms"))}</button></p>`;
