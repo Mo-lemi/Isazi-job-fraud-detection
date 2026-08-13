@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { MotionConfig } from 'motion/react';
 import { Header } from './components/Header';
 import { FraudScanner } from './components/FraudScanner';
 import { RedFlagAcademy } from './components/RedFlagAcademy';
@@ -46,6 +47,7 @@ export function App() {
   }, []);
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between">
       
       {/* Lets a keyboard user reach the content without tabbing the whole
@@ -83,6 +85,7 @@ export function App() {
       </footer>
 
     </div>
+    </MotionConfig>
   );
 }
 
