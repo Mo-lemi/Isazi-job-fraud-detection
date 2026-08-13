@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ScoreResponse, SamplePosting } from '../types';
 import { SAMPLE_POSTINGS } from '../data/samples';
 import { FLAG_LABELS } from '../lib/labels';
-import { ShieldAlert, AlertTriangle, CheckCircle2, Sparkles, RefreshCw, Info, ExternalLink, HelpCircle, Share2, Copy } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle2, Sparkles, RefreshCw, Info, ExternalLink, HelpCircle, Share2, Copy, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CvMatch } from './CvMatch';
 
@@ -264,7 +264,7 @@ export const FraudScanner: React.FC = () => {
     <div className="space-y-6">
       
       {/* Sample Selector Bar */}
-      <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-sm">
+      <div className="qp-no-print bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-400" />
@@ -351,7 +351,7 @@ export const FraudScanner: React.FC = () => {
 
         {/* Left Column: Text Input & Live Annotations */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="qp-no-print bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <label htmlFor="job-posting-input" className="block text-sm font-semibold text-slate-200 font-mono uppercase tracking-wider">
                 Paste Job Posting or Message
@@ -559,16 +559,24 @@ export const FraudScanner: React.FC = () => {
 
             {/* Shareable safety summary. Built only from the real result; lets
                 someone warn family or a WhatsApp group, which is how these
-                scams spread in the first place. */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                scams spread in the first place. Hidden from the printed report
+                (it is a set of controls). */}
+            <div className="qp-no-print bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
               <div className="flex items-center gap-2 mb-2">
                 <Share2 className="w-4 h-4 text-[var(--qp-primary)]" aria-hidden="true" />
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Share this safety check</span>
               </div>
               <p className="text-xs text-slate-400 mb-4">
-                Send a short summary to someone you trust before you apply.
+                Send a short summary to someone you trust, or save a copy for your records.
               </p>
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qp-primary)]"
+                >
+                  <Printer className="w-4 h-4" aria-hidden="true" />
+                  <span>Save / print report</span>
+                </button>
                 <button
                   onClick={copySummary}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qp-primary)]"

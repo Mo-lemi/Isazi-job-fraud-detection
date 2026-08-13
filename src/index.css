@@ -163,6 +163,27 @@ html.qp-large-text {
   font-size: 18px;
 }
 
+/* Print / save as PDF: force the light palette so a printout is dark-on-white
+   whatever the on-screen theme, drop the interactive chrome, and keep just the
+   safety report. Elements marked .qp-no-print (inputs, sample loader, buttons)
+   and the header/footer/watermark are removed. */
+@media print {
+  :root {
+    --color-slate-950: #ffffff; --color-slate-900: #f4f5f7; --color-slate-800: #e2e8f0;
+    --color-slate-700: #cbd5e1; --color-slate-600: #94a3b8; --color-slate-500: #64748b;
+    --color-slate-400: #475569; --color-slate-300: #334155; --color-slate-200: #1e293b;
+    --color-slate-100: #0f172a; --color-slate-50: #020617;
+    --qp-page: #ffffff; --qp-surface: #ffffff; --qp-surface-2: #f7f9fc; --qp-ink: #081A2F;
+    --qp-ink-body: #2E3A4B; --qp-ink-muted: #5B6472; --qp-line: #E2E8F0; --qp-primary: #083E7D;
+    --qp-primary-ink: #ffffff; --qp-primary-soft: #EAF1FB; --qp-safe: #0B6B3A; --qp-safe-soft: #E8F5EE;
+    --qp-risk: #C0281C; --qp-risk-soft: #FDECEA; --qp-warn: #8A6200; --qp-warn-soft: #FCF4E3;
+  }
+  body { background: #ffffff !important; }
+  body::after { display: none !important; }
+  header, footer, .qp-no-print { display: none !important; }
+  input, textarea, select { display: none !important; }
+}
+
 /* Custom scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

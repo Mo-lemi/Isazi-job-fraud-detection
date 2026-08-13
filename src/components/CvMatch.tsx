@@ -106,7 +106,7 @@ export const CvMatch: React.FC<CvMatchProps> = ({ jobText }) => {
       </p>
 
       {/* Upload a CV file in any common format (PDF, Word, text). */}
-      <div className="flex flex-wrap items-center gap-3 mb-3">
+      <div className="qp-no-print flex flex-wrap items-center gap-3 mb-3">
         <label className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[var(--qp-primary)] text-[var(--qp-primary-ink)] text-sm font-medium cursor-pointer transition-all hover:brightness-110 focus-within:ring-2 focus-within:ring-[var(--qp-primary)]">
           <Upload className="w-4 h-4" aria-hidden="true" />
           <span>Upload CV file</span>
@@ -132,7 +132,7 @@ export const CvMatch: React.FC<CvMatchProps> = ({ jobText }) => {
         className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-[var(--qp-primary)] outline-none font-sans leading-relaxed min-h-[96px]"
       />
 
-      <div className="flex items-center justify-between mt-3">
+      <div className="qp-no-print flex items-center justify-between mt-3">
         <span className="text-xs text-slate-500">
           {jobText.trim() ? '' : 'Scan a job posting first.'}
         </span>
