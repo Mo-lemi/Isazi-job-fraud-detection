@@ -6,6 +6,7 @@ import { ShieldAlert, AlertTriangle, CheckCircle2, Sparkles, RefreshCw, Info, Ex
 import { motion, AnimatePresence } from 'motion/react';
 import { CvMatch } from './CvMatch';
 import { ApplicationChecklist } from './ApplicationChecklist';
+import { EmployerVerify } from './EmployerVerify';
 
 export const FraudScanner: React.FC = () => {
   const [inputText, setInputText] = useState<string>(SAMPLE_POSTINGS[0].text);
@@ -668,6 +669,9 @@ export const FraudScanner: React.FC = () => {
                 Not being able to verify these is not proof the job is fake, and no warnings is not proof it is safe.
               </p>
             </div>
+
+            {/* Employer verification via passive recon (real /api/verify-employer). */}
+            <EmployerVerify jobText={scoredText || ''} />
 
             {/* CV match against the posting just scored (real /api/match call). */}
             <CvMatch jobText={scoredText || ''} />

@@ -187,6 +187,43 @@ async function startServer() {
   app.post('/match-file', rawMultipart, matchFileHandler);
   app.post('/api/match-file', rawMultipart, matchFileHandler);
 
+  // Employer verification -- proxies the FastAPI /verify-employer recon
+  // endpoint, which extracts the email/website from the posting text and runs
+  // passive DNS/RDAP/TLS + local checks. Returns findings and counts (never a
+  // trust score), so the web app can surface the same honest checks the
+  // extension does.
+  const verifyHandler = async (req: express.Request, res: express.Response) => {
+    const ip = req.ip || 'unknown';
+    if (rateLimited(ip)) {
+      return res.status(429).json({ error: 'Rate limit exceeded. Wait a moment and try again.' });
+    }
+    const { text, company } = req.body || {};
+    if (typeof text !== 'string') {
+      return res.status(400).json({ error: 'Field "text" must be a string' });
+    }
+    if (text.length > MAX_TEXT_CHARS) {
+      return res.status(413).json({ error: `Text too long (max ${MAX_TEXT_CHARS} characters)` });
+    }
+    try {
+      const mlRes = await fetch(`${ML_API_URL}/verify-employer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, company: typeof company === 'string' ? company : '' }),
+      });
+      if (!mlRes.ok) {
+        return res.status(502).json({ error: `Verification service returned ${mlRes.status}` });
+      }
+      res.json(await mlRes.json());
+    } catch {
+      res.status(502).json({
+        error: `ML service unreachable at ${ML_API_URL}. Start it with: uvicorn app:app --port 8000 (from qhaphela/)`,
+      });
+    }
+  };
+
+  app.post('/verify-employer', verifyHandler);
+  app.post('/api/verify-employer', verifyHandler);
+
   // Development vs Production static serving
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
