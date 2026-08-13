@@ -84,6 +84,21 @@ _NO_EXPERIENCE_RE = re.compile(
     r"anyone can apply|matric only)\b",
     re.I,
 )
+# Payment demanded in cryptocurrency, gift cards or vouchers -- an
+# untraceable, non-reversible payment channel no legitimate employer uses.
+_CRYPTO_GIFTCARD_RE = re.compile(
+    r"\b(bitcoin|crypto ?currency|crypto|usdt|ethereum|"
+    r"gift ?card|steam ?card|itunes ?card|google ?play ?card|voucher code|prepaid voucher)\b",
+    re.I,
+)
+# Pay-to-join / recruit-others schemes. Deliberately narrow so it does not fire
+# on an ordinary "starter pack deposit" (already caught as a payment request):
+# it targets the MLM-style pattern of earning by signing other people up.
+_RECRUIT_SCHEME_RE = re.compile(
+    r"\b(recruit (other|others|new members|agents)|pay to join|joining fee|"
+    r"sign up members|earn (money )?by recruiting|refer (people|members) to join)\b",
+    re.I,
+)
 
 # Rough legitimate monthly ZAR bands per role, used only for the mismatch ratio.
 # Falls back to a generic (5000, 20000) band when the role isn't recognised.
@@ -231,6 +246,8 @@ RULE_POINT_WEIGHTS = {
     "freemail_contact": 10,
     "youth_programme_lure": 10,
     "bbbee_no_cert": 5,
+    "crypto_giftcard_payment": 30,
+    "recruit_scheme": 15,
 }
 
 
@@ -510,6 +527,8 @@ STRONG_SIGNAL_KEYS = {
     "whatsapp_migration",
     "salary_mismatch",
     "fake_popia_clause",
+    "crypto_giftcard_payment",
+    "recruit_scheme",
 }
 
 
@@ -524,6 +543,8 @@ def has_strong_signal(text: str) -> bool:
         "Pushes you off-platform to WhatsApp": "whatsapp_migration",
         "Salary far above market rate for this role": "salary_mismatch",
         "Cites POPIA to sound official while requesting documents": "fake_popia_clause",
+        "Asks for payment in cryptocurrency, gift cards or vouchers": "crypto_giftcard_payment",
+        "Pay-to-join or recruit-others scheme": "recruit_scheme",
     }
     for item in rule_points(text)["items"]:
         if labels_to_keys.get(item["reason"]) in STRONG_SIGNAL_KEYS:
@@ -562,6 +583,8 @@ def rule_points(text: str) -> dict:
     # only treated as a lure signal when paired with a "no experience needed"
     # style hook, which is the actual youth-targeting pattern.
     has_youth_lure = bool(_YOUTH_PROGRAMME_RE.search(text)) and bool(_NO_EXPERIENCE_RE.search(text))
+    has_crypto_giftcard = bool(_CRYPTO_GIFTCARD_RE.search(text))
+    has_recruit_scheme = bool(_RECRUIT_SCHEME_RE.search(text))
 
     items = []
     if has_bank_or_id:
@@ -588,6 +611,10 @@ def rule_points(text: str) -> dict:
         items.append({"reason": "Recruiter using a free email address (Gmail/Yahoo/etc.)", "points": RULE_POINT_WEIGHTS["freemail_contact"]})
     if has_bbbee and not has_cert_number:
         items.append({"reason": "Unverifiable B-BBEE claim (no certificate number)", "points": RULE_POINT_WEIGHTS["bbbee_no_cert"]})
+    if has_crypto_giftcard:
+        items.append({"reason": "Asks for payment in cryptocurrency, gift cards or vouchers", "points": RULE_POINT_WEIGHTS["crypto_giftcard_payment"]})
+    if has_recruit_scheme:
+        items.append({"reason": "Pay-to-join or recruit-others scheme", "points": RULE_POINT_WEIGHTS["recruit_scheme"]})
 
     items.sort(key=lambda i: i["points"], reverse=True)
     total = min(sum(i["points"] for i in items), 100)
@@ -857,6 +884,8 @@ def hard_floor_flags(text: str) -> list:
         flags.append("Requests ID number/document or banking details")
     if _PAYMENT_RE.search(text):
         flags.append("Requests an upfront payment or registration fee")
+    if _CRYPTO_GIFTCARD_RE.search(text):
+        flags.append("Asks for payment in cryptocurrency, gift cards or vouchers")
     if _PASSPORT_RE.search(text):
         flags.append("Requests passport details")
     return flags

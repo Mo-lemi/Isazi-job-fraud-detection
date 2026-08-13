@@ -104,6 +104,43 @@ def test_legit_learnership_not_flagged_by_youth_pattern(client):
     assert not any("Youth programme" in r for r in reasons)
 
 
+def test_crypto_giftcard_payment_flagged(client):
+    """A demand for payment in gift cards / crypto is an untraceable-payment signal."""
+    result = _score(
+        client,
+        "Data capturer needed, work from home. To activate your account, buy a "
+        "R500 gift card and send us the code to start.",
+    )
+    reasons = [r["reason"] for r in result["rule_reasons"]]
+    assert any("cryptocurrency, gift cards or vouchers" in r for r in reasons)
+    # A gift-card / crypto payment demand is non-negotiable: it floors at HIGH.
+    assert result["tier"] == "HIGH"
+    assert any("cryptocurrency, gift cards or vouchers" in f for f in result["hard_floor_flags"])
+
+
+def test_recruit_others_scheme_flagged(client):
+    """An MLM-style 'pay to join and earn by recruiting' pattern is flagged."""
+    result = _score(
+        client,
+        "Great opportunity! Pay to join our team and earn money by recruiting "
+        "other people into the programme.",
+    )
+    reasons = [r["reason"] for r in result["rule_reasons"]]
+    assert any("recruit-others scheme" in r for r in reasons)
+
+
+def test_ordinary_starter_pack_not_treated_as_recruit_scheme(client):
+    """A 'starter pack deposit' is a payment request, not an MLM scheme -- the
+    recruit-scheme rule must stay narrow enough not to fire on it."""
+    result = _score(
+        client,
+        "Driver needed, Durban. A refundable starter pack deposit is required "
+        "before your uniform is issued.",
+    )
+    reasons = [r["reason"] for r in result["rule_reasons"]]
+    assert not any("recruit-others scheme" in r for r in reasons)
+
+
 # --- Fairness: bias against small/informal employers ---------------------
 
 SMALL_INFORMAL_BUSINESS = (

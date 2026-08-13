@@ -530,7 +530,7 @@ def ai_explain(req: AiExplainRequest, request: Request):
         score_val = max(score_val, 75)
     points = rule_points(text)
     positives = positive_signals(text)
-    if not any(v > 0 for v in rule_vec[0][:8]):
+    if not any(v > 0 for v in rule_vec[0][:8]) and not hard_floor_flags(text):
         score_val = min(score_val, 25)
     if not hard_floor_flags(text) and not has_strong_signal(text):
         score_val = min(score_val, 25)
@@ -641,8 +641,12 @@ def score(req: ScoreRequest, request: Request):
     # retrained on better data, a score isn't trusted above a low ceiling
     # unless at least one of the 8 interpretable rule signals actually
     # fired (excludes posting_length_norm, which isn't a fraud signal).
+    # A hard floor is itself a strong interpretable signal, so it must bypass
+    # this ceiling -- otherwise a demand caught only by the rule layer (e.g. a
+    # gift-card / crypto payment, which is not one of the model's rule features)
+    # would be floored to HIGH here and then capped straight back to 25.
     has_rule_evidence = any(v > 0 for v in rule_vec[0][:8])
-    if not has_rule_evidence:
+    if not has_rule_evidence and not floors:
         score_val = min(score_val, 25)
 
     # Fairness guard, from the research protocol's bias section: ambiguous
