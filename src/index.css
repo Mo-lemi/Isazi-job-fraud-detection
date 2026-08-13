@@ -163,6 +163,17 @@ html.qp-large-text {
   font-size: 18px;
 }
 
+/* High-contrast mode (settings menu). Promotes muted text to body strength and
+   strengthens borders, using the existing per-theme token values so it improves
+   contrast in BOTH light and dark without inventing new colours. */
+html.qp-high-contrast {
+  --qp-ink-muted: var(--qp-ink-body);
+  --qp-line: var(--qp-ink-muted);
+  --color-slate-400: var(--color-slate-300);
+  --color-slate-500: var(--color-slate-300);
+  --color-slate-600: var(--color-slate-400);
+}
+
 /* Print / save as PDF: force the light palette so a printout is dark-on-white
    whatever the on-screen theme, drop the interactive chrome, and keep just the
    safety report. Elements marked .qp-no-print (inputs, sample loader, buttons)

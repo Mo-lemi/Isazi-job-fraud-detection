@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, Settings, Sun, Moon, XCircle, Type } from 'lucide-react';
+import { Globe, Settings, Sun, Moon, XCircle, Type, Contrast } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify' | 'qr' | 'cv' | 'poster';
@@ -40,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
   // the explicit choice, or the OS preference when the choice is 'system'.
   const [isDark, setIsDark] = useState(true);
   const [largeText, setLargeText] = useState(false);
+  const [highContrast, setHighContrast] = useState(false);
 
   useEffect(() => {
     const choice = storedChoice();
@@ -69,6 +70,21 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
     setLargeText(next);
     document.documentElement.classList.toggle('qp-large-text', next);
     localStorage.setItem('qhaphela-textsize', next ? 'large' : 'normal');
+  };
+
+  // Higher-contrast text and borders for low-vision users. Works in both light
+  // and dark because it strengthens the existing per-theme tokens.
+  useEffect(() => {
+    const hc = typeof localStorage !== 'undefined' && localStorage.getItem('qhaphela-contrast') === 'high';
+    setHighContrast(hc);
+    document.documentElement.classList.toggle('qp-high-contrast', hc);
+  }, []);
+
+  const toggleContrast = () => {
+    const next = !highContrast;
+    setHighContrast(next);
+    document.documentElement.classList.toggle('qp-high-contrast', next);
+    localStorage.setItem('qhaphela-contrast', next ? 'high' : 'normal');
   };
 
   const toggleTheme = () => {
@@ -144,6 +160,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                >
                  <Type className="w-4 h-4" />
                  <span>Text size: {largeText ? 'Large' : 'Normal'}</span>
+               </button>
+               <button
+                 onClick={toggleContrast}
+                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+               >
+                 <Contrast className="w-4 h-4" />
+                 <span>High contrast: {highContrast ? 'On' : 'Off'}</span>
                </button>
                <button
                  onClick={closeApp}
