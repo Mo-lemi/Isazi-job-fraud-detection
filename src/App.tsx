@@ -11,6 +11,7 @@ import { SafeReplies } from './components/SafeReplies';
 import { QrScan } from './components/QrScan';
 import { RecentChecks } from './components/RecentChecks';
 import { CvBuilder } from './components/CvBuilder';
+import { AwarenessPoster } from './components/AwarenessPoster';
 
 // Every view needs a level-one heading. Screen reader users navigate by
 // heading structure, and this page had none at all, so there was no way to
@@ -25,10 +26,11 @@ const VIEW_TITLES: Record<string, string> = {
   verify: 'Verify a recruiter safely',
   qr: 'Scan a QR code',
   cv: 'Build a CV',
+  poster: 'Awareness poster',
 };
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify' | 'qr' | 'cv'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'academy' | 'simulator' | 'api' | 'install' | 'recovery' | 'verify' | 'qr' | 'cv' | 'poster'>('scanner');
   const [apiStatus, setApiStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   useEffect(() => {
     fetch('/health')
@@ -68,6 +70,7 @@ export function App() {
           {activeTab === 'verify' && <SafeReplies />}
           {activeTab === 'qr' && <QrScan />}
           {activeTab === 'cv' && <CvBuilder />}
+          {activeTab === 'poster' && <AwarenessPoster />}
           {activeTab === 'recovery' && <ScamRecovery />}
         </main>
       </div>
