@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import jsQR from 'jsqr';
-import { QrCode, Upload, Copy, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
+import { QrCode, Upload, Copy, CheckCircle2, AlertTriangle, Info, Camera, X } from 'lucide-react';
 
 /**
  * QR code scanner (Prompt 4). Decodes a QR from an uploaded image entirely in
@@ -43,6 +43,74 @@ export const QrScan: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'reading' | 'nofound' | 'done' | 'error'>('idle');
   const [fileName, setFileName] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  const stopCamera = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setScanning(false);
+  }, []);
+
+  // Stop the camera if the component unmounts (leaving the tab).
+  useEffect(() => () => stopCamera(), [stopCamera]);
+
+  // Read frames from the live camera until a QR is found, then stop.
+  const tick = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      rafRef.current = requestAnimationFrame(tick);
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { rafRef.current = requestAnimationFrame(tick); return; }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(data.data, data.width, data.height);
+    if (code && code.data) {
+      setDecoded(analyse(code.data));
+      setStatus('done');
+      setFileName(null);
+      stopCamera();
+      return;
+    }
+    rafRef.current = requestAnimationFrame(tick);
+  }, [stopCamera]);
+
+  const startCamera = async () => {
+    setCameraError(null);
+    setDecoded(null);
+    setStatus('idle');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('This browser does not support camera access. You can upload an image instead.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      setScanning(true);
+      // Wait for the video element to mount before attaching the stream.
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+          rafRef.current = requestAnimationFrame(tick);
+        }
+      });
+    } catch {
+      setCameraError('Camera access was blocked or no camera is available. You can upload an image instead.');
+      setScanning(false);
+    }
+  };
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -104,8 +172,31 @@ export const QrScan: React.FC = () => {
             <span>Upload QR image</span>
             <input type="file" accept="image/*" onChange={onFile} className="sr-only" />
           </label>
+          <button
+            onClick={scanning ? stopCamera : startCamera}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qp-primary)]"
+          >
+            {scanning
+              ? <><X className="w-4 h-4" aria-hidden="true" /><span>Stop camera</span></>
+              : <><Camera className="w-4 h-4" aria-hidden="true" /><span>Use camera</span></>}
+          </button>
           {fileName && <span className="text-xs text-slate-400">{fileName}</span>}
         </div>
+
+        {scanning && (
+          <div className="mt-4">
+            <p className="text-xs text-slate-400 mb-2">Point your camera at the QR code. Qhaphela reads it on your device only.</p>
+            <video
+              ref={videoRef}
+              muted
+              playsInline
+              className="w-full max-w-sm rounded-lg border border-slate-800 bg-black"
+            />
+          </div>
+        )}
+        {cameraError && (
+          <p className="mt-3 text-sm text-[var(--qp-warn)]">{cameraError}</p>
+        )}
       </div>
 
       {status === 'reading' && (
