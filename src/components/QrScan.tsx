@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import jsQR from 'jsqr';
 import { QrCode, Upload, Copy, CheckCircle2, AlertTriangle, Info, Camera, X } from 'lucide-react';
+import { analyseQr, type QrAnalysis } from '../lib/qrHeuristics';
 
 /**
  * QR code scanner (Prompt 4). Decodes a QR from an uploaded image entirely in
@@ -8,38 +9,11 @@ import { QrCode, Upload, Copy, CheckCircle2, AlertTriangle, Info, Camera, X } fr
  * the real destination and honest heuristic warnings, and never auto-opens an
  * unknown link. Absence of a warning is not a claim that the destination is
  * safe: a QR can point to a real company site and still be part of a scam.
+ * The URL heuristics live in ../lib/qrHeuristics so they can be unit-tested.
  */
 
-interface Decoded {
-  text: string;
-  isUrl: boolean;
-  host?: string;
-  warnings: string[];
-}
-
-const SHORTENERS = ['bit.ly', 'tinyurl.com', 't.co', 'goo.gl', 'ow.ly', 'is.gd', 'buff.ly', 'rebrand.ly', 'cutt.ly', 'shorturl.at'];
-
-function analyse(text: string): Decoded {
-  const warnings: string[] = [];
-  let url: URL | null = null;
-  try {
-    url = new URL(text);
-  } catch {
-    /* not a URL */
-  }
-  if (!url || !/^https?:$/.test(url.protocol)) {
-    return { text, isUrl: false, warnings };
-  }
-  const host = url.hostname;
-  if (url.protocol !== 'https:') warnings.push('This link is not secure (no https). Be careful entering any details.');
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) warnings.push('The link points to a raw IP address rather than a normal website name.');
-  if (host.startsWith('xn--') || host.includes('.xn--')) warnings.push('The website name uses special characters that can be used to imitate a real company (a lookalike domain).');
-  if (SHORTENERS.includes(host.toLowerCase())) warnings.push('This is a shortened link, so the real destination is hidden until you open it.');
-  return { text, isUrl: true, host, warnings };
-}
-
 export const QrScan: React.FC = () => {
-  const [decoded, setDecoded] = useState<Decoded | null>(null);
+  const [decoded, setDecoded] = useState<QrAnalysis | null>(null);
   const [status, setStatus] = useState<'idle' | 'reading' | 'nofound' | 'done' | 'error'>('idle');
   const [fileName, setFileName] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -77,7 +51,7 @@ export const QrScan: React.FC = () => {
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(data.data, data.width, data.height);
     if (code && code.data) {
-      setDecoded(analyse(code.data));
+      setDecoded(analyseQr(code.data));
       setStatus('done');
       setFileName(null);
       stopCamera();
@@ -132,7 +106,7 @@ export const QrScan: React.FC = () => {
         const code = jsQR(data.data, data.width, data.height);
         URL.revokeObjectURL(img.src);
         if (!code || !code.data) { setStatus('nofound'); return; }
-        setDecoded(analyse(code.data));
+        setDecoded(analyseQr(code.data));
         setStatus('done');
       } catch {
         setStatus('error');
